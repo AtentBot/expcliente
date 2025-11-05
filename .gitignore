@@ -1,0 +1,116 @@
+# ===============================
+# DOTNET / VISUAL STUDIO
+# ===============================
+bin/
+obj/
+[Bb]uild/
+[Ll]og/
+[Tt]est[Rr]esult*/
+*.VisualState.xml
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+.vs/
+.vscode/
+
+# ===============================
+# DOTNET RUNTIME / TOOLS
+# ===============================
+*.dll
+*.exe
+*.pdb
+*.cache
+*.log
+*.dbmdl
+*.bak
+*.bak2
+*.tmp
+*.lock.json
+
+# ===============================
+# CONFIGURAÇÕES LOCAIS
+# ===============================
+appsettings.Development.json
+appsettings.Local.json
+appsettings.*.local.json
+appsettings.json
+
+# Mantém o modelo base de exemplo
+!appsettings.example.json
+
+# ===============================
+# ENTIDADES E DATABASES
+# ===============================
+*.mdf
+*.ldf
+*.sqlite
+*.db
+*.db-shm
+*.db-wal
+Migrations/
+Database/
+EFCoreMigrations/
+
+# ===============================
+# AMBIENTES E CONTAINERS
+# ===============================
+.env
+.env.*
+docker-compose.override.yml
+*.pid
+*.seed
+*.seed.json
+
+# ===============================
+# CACHE / TEMPORÁRIOS
+# ===============================
+*.ncrunch*
+*.vspscc
+*.vssscc
+*.orig
+*.rej
+*.bak
+*.swp
+*.swo
+*.DS_Store
+*.Thumbs.db
+.idea/
+_ReSharper*/
+*.DotSettings.user
+
+# ===============================
+# NODE / FRONTEND (caso use)
+# ===============================
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+package-lock.json
+dist/
+coverage/
+
+# ===============================
+# SECRETS / STRIPE / CERTS
+# ===============================
+stripe.key
+stripe.log
+secrets.json
+*.pem
+*.crt
+*.key
+*.pfx
+
+# ===============================
+# LINUX / MAC / WINDOWS
+# ===============================
+*.out
+*.class
+*.swp
+*.swo
+*.iml
+*.db
+.DS_Store
+ehthumbs.db
+Thumbs.db
+Icon?
