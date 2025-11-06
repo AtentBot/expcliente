@@ -1,0 +1,55 @@
+﻿version: '3.8'
+services:
+  expcliente:
+    image: atentbot/expcliente:latest
+    volumes:
+      - expcliente-keys:/app/.keys
+      - expcliente-uploads:/app/uploads
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:8080
+      - ASPNETCORE_FORWARDEDHEADERS_ENABLED=true
+    deploy:
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+      restart_policy:
+        condition: on-failure
+      labels:
+        - "traefik.enable=true"
+        
+        # Router HTTPS
+        - "traefik.http.routers.expcliente.rule=Host(`expcliente.atentbot.com`)"
+        - "traefik.http.routers.expcliente.entrypoints=websecure"
+        - "traefik.http.routers.expcliente.tls=true"
+        - "traefik.http.routers.expcliente.tls.certresolver=le"
+        
+        # Service
+        - "traefik.http.services.expcliente.loadbalancer.server.port=8080"
+        - "traefik.docker.network=traefik_public"
+        
+        # Health check
+        - "traefik.http.services.expcliente.loadbalancer.healthcheck.path=/health"
+        - "traefik.http.services.expcliente.loadbalancer.healthcheck.interval=30s"
+        - "traefik.http.services.expcliente.loadbalancer.healthcheck.timeout=5s"
+        
+        # Sticky sessions (opcional, mas útil com 2 réplicas)
+        - "traefik.http.services.expcliente.loadbalancer.sticky.cookie=true"
+        - "traefik.http.services.expcliente.loadbalancer.sticky.cookie.name=expcliente_sticky"
+        - "traefik.http.services.expcliente.loadbalancer.sticky.cookie.secure=true"
+        - "traefik.http.services.expcliente.loadbalancer.sticky.cookie.httpOnly=true"
+        
+    networks:
+      - traefik_public
+
+volumes:
+  expcliente-keys:
+    driver: local
+  expcliente-uploads:
+    driver: local
+
+networks:
+  traefik_public:
+    external: true

@@ -1,0 +1,41 @@
+# ---------- build ----------
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+WORKDIR /src
+
+# Se seu .csproj está na raiz, isto basta. Se estiver em subpasta, troque a linha abaixo:
+COPY *.csproj ./
+# Exemplo alternativo:
+# COPY src/expcliente/expcliente.csproj ./expcliente.csproj
+
+RUN dotnet restore
+
+# Copia tudo e publica
+COPY . .
+RUN dotnet publish -c Release -o /app/out /p:UseAppHost=false
+
+# ---------- runtime ----------
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
+WORKDIR /app
+
+# App escuta porta 8080
+ENV ASPNETCORE_URLS=http://+:8080
+
+# Instala curl para o healthcheck (leve, sem recommends)
+USER root
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends curl \
+ && rm -rf /var/lib/apt/lists/*
+# cria usuário não-root
+RUN adduser --disabled-password --gecos '' appuser && chown -R appuser /app
+USER appuser
+
+COPY --from=build /app/out ./
+
+EXPOSE 8080
+
+# healthcheck usando curl
+HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
+  CMD curl -fsS http://localhost:8080/healthz || exit 1
+
+# Ajuste o nome do dll se necessário
+ENTRYPOINT ["dotnet","expcliente.dll"]

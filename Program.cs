@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.OpenApi.Models;
 using Data;
 using Service;
@@ -15,7 +16,7 @@ builder.Services.AddSwaggerGen(c =>
     {
         Title = "ExpCliente API",
         Version = "v1",
-        Description = "API de estabelecimentos com segurança via X-API-KEY e sessão"
+        Description = "API de estabelecimentos com seguranï¿½a via X-API-KEY e sessï¿½o"
     });
 
     // Header: X-API-KEY
@@ -33,10 +34,10 @@ builder.Services.AddSwaggerGen(c =>
         Type = SecuritySchemeType.ApiKey,
         In = ParameterLocation.Header,
         Name = "X-SESSION-TOKEN",
-        Description = "Token de sessão retornado no login"
+        Description = "Token de sessï¿½o retornado no login"
     });
 
-    // Exigir ambos por padrão (para rotas /api)
+    // Exigir ambos por padrï¿½o (para rotas /api)
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
@@ -56,32 +57,54 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// === Configurações ===
+// === Configuraï¿½ï¿½es ===
 builder.Services.Configure<ApiKey.Options>(builder.Configuration.GetSection("ApiKeyAuth"));
+
+var conn =
+    builder.Configuration.GetConnectionString("Default") ??
+    builder.Configuration.GetConnectionString("DefaultConnection") ??
+    builder.Configuration["ConnectionStrings:Default"] ??
+    builder.Configuration["ConnectionStrings:DefaultConnection"];
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options
-        .UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
+        .UseNpgsql(conn)
         .UseSnakeCaseNamingConvention()
 );
 
 builder.Services.AddControllersWithViews();
-builder.Services.AddControllers();
 builder.Services.AddHttpClient();
 builder.Services.AddScoped<Services.CreditService>();
 builder.Services.AddHttpContextAccessor();
 
 StripeConfiguration.ApiKey = builder.Configuration["StripeSettings:SecretKey"];
 
+
+builder.Services.Configure<ForwardedHeadersOptions>(o =>
+{
+    o.ForwardedHeaders =
+        ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+
+    // Se vocÃª souber o IP do proxy, configure aqui (mais seguro):
+    // o.KnownProxies.Add(System.Net.IPAddress.Parse("172.18.0.2"));
+
+    // OU, se estiver em ambiente controlado e quiser liberar geral (menos seguro):
+    o.KnownNetworks.Clear();
+    o.KnownProxies.Clear();
+});
+
 var app = builder.Build();
 
-// Segurança SOMENTE nas rotas /api
+// Seguranï¿½a SOMENTE nas rotas /api
+app.UseForwardedHeaders();
+
 app.UseWhen(ctx => ctx.Request.Path.StartsWithSegments("/api"), branch =>
 {
     branch.UseMiddleware<ApiKeyMiddleware>();
     branch.UseMiddleware<SessionAuthMiddleware>();
 });
 
+app.UseForwardedHeaders();
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
@@ -89,25 +112,29 @@ app.UseSwaggerUI(c =>
     c.RoutePrefix = "swagger";
 });
 
-app.UseExceptionHandler("/error");
-app.UseHsts();
 
-app.UseHttpsRedirection();
+app.UseExceptionHandler("/error");
+
 app.UseStaticFiles();
 app.UseRouting();
 
-// NÃO usar Authorization sem Authentication configurado
+// Nï¿½O usar Authorization sem Authentication configurado
 // app.UseAuthorization();
-// NÃO registrar SessionAuth aqui (já está dentro do branch /api)
+// Nï¿½O registrar SessionAuth aqui (jï¿½ estï¿½ dentro do branch /api)
 // app.UseMiddleware<SessionAuthMiddleware>();
 
-
+app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
 app.MapControllers();
 
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.Migrate();
+}
 app.Run();
 
 
